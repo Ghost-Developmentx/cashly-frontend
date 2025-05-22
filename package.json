@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.19.5",
+    "apexcharts": "^4.7.0",
+    "axios": "^1.9.0",
     "next": "15.3.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-apexcharts": "^1.7.0",
+    "react-dom": "^19.0.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
