@@ -1,14 +1,5 @@
 import React from 'react';
-
-interface Account {
-    id: string;
-    name: string;
-    account_type: string;
-    balance: number;
-    institution: string;
-    transaction_count?: number;
-    last_synced?: string;
-}
+import { Account } from '@/types/financial';
 
 interface AccountDisplayProps {
     accounts: Account[];
@@ -23,14 +14,17 @@ export default function AccountDisplay({ accounts, onDisconnect }: AccountDispla
         }).format(amount);
     };
 
-    const formatAccountType = (type: string) => {
-        return type.split('_').map(word =>
-            word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
+    const formatAccountType = (accountType: string | undefined): string => {
+        if (!accountType) return 'Unknown';
+        return accountType
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     };
 
-    const getAccountIcon = (type: string) => {
-        switch (type.toLowerCase()) {
+    const getAccountIcon = (type: string | undefined) => {
+        const accountType = (type || 'other').toLowerCase();
+        switch (accountType) {
             case 'checking':
                 return (
                     <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +80,7 @@ export default function AccountDisplay({ accounts, onDisconnect }: AccountDispla
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 <div className="flex-shrink-0">
-                                    {getAccountIcon(account.account_type)}
+                                    {getAccountIcon(account.account_type || account.type)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center space-x-2">
@@ -94,7 +88,7 @@ export default function AccountDisplay({ accounts, onDisconnect }: AccountDispla
                                             {account.name}
                                         </h4>
                                         <span className="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded">
-                      {formatAccountType(account.account_type)}
+                      {formatAccountType(account.account_type || account.type)}
                     </span>
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">

@@ -7,15 +7,17 @@ import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import PlaidChatLink from '../PlaidChatLink';
 import AccountDisplay from '../AccountDisplay';
+import TransactionDisplay from '../TransactionDisplay';
+import TransactionEditModal from '../TransactionEditModal';
 import { useUser, useAuth } from '@clerk/nextjs';
-
-
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-}
+import {
+  Message,
+  Account,
+  Transaction,
+  TransactionData,
+  FinAction,
+  ApiResponse
+} from '@/types/financial';
 
 type Props = {
   conversation: {
@@ -32,7 +34,11 @@ export default function FinConversationDashboard({ conversation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPlaidLink, setShowPlaidLink] = useState(false);
-  const [accountData, setAccountData] = useState<any[]>([]);
+  const [accountData, setAccountData] = useState<Account[]>([]);
+  const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [isNewTransaction, setIsNewTransaction] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,9 +61,9 @@ export default function FinConversationDashboard({ conversation }: Props) {
 
     // Clear any previous errors when switching conversations
     setError(null);
-  }, [conversation]); // 🔧 Watch the entire conversation object
+  }, [conversation]); // Watch the entire conversation object
 
-  const handlePlaidSuccess = (accounts: any[]) => {
+  const handlePlaidSuccess = (accounts: Account[]) => {
     console.log('Plaid connection successful:', accounts);
     setAccountData(accounts);
     setShowPlaidLink(false);
@@ -84,6 +90,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
     };
     setMessages(prev => [...prev, errorMsg]);
   };
+
 
   const handlePlaidExit = () => {
     console.log('Plaid connection cancelled');
@@ -130,6 +137,121 @@ export default function FinConversationDashboard({ conversation }: Props) {
     }
   };
 
+  const handleTransactionEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsNewTransaction(false);
+    setShowTransactionModal(true);
+  };
+
+  const handleTransactionDelete = async (transactionId: string) => {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
+
+    try {
+      const token = await getToken();
+      const response = await axios.delete(
+          `${process.env.NEXT_PUBLIC_API_URL}/fin/transactions/${transactionId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      if (response.data.success) {
+        // Remove transaction from current data
+        if (transactionData) {
+          const updatedTransactions = transactionData.transactions.filter((t: Transaction) => t.id !== transactionId);
+
+          // Recalculate summary
+          const totalIncome = updatedTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+          const totalExpenses = updatedTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+          setTransactionData({
+            ...transactionData,
+            transactions: updatedTransactions,
+            summary: {
+              ...transactionData.summary,
+              count: updatedTransactions.length,
+              total_income: totalIncome,
+              total_expenses: totalExpenses,
+              net_change: totalIncome - totalExpenses
+            }
+          });
+        }
+
+        // Add a success message
+        const successMessage: Message = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: `✅ Transaction deleted successfully!`
+        };
+        setMessages(prev => [...prev, successMessage]);
+      }
+    } catch (error: unknown) {
+      console.error('Error deleting transaction:', error);
+      const errorMessage = axios.isAxiosError(error)
+          ? error.response?.data?.error || 'Failed to delete transaction'
+          : 'Failed to delete transaction';
+
+      const errorMsg: Message = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: `❌ ${errorMessage}`
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    }
+  };
+
+  const handleAddTransaction = () => {
+    setEditingTransaction(null);
+    setIsNewTransaction(true);
+    setShowTransactionModal(true);
+  };
+
+  const handleTransactionSave = (savedTransaction: Transaction) => {
+    if (transactionData) {
+      let updatedTransactions: Transaction[];
+
+      if (isNewTransaction) {
+        // Add new transaction to the list
+        updatedTransactions = [savedTransaction, ...transactionData.transactions];
+      } else {
+        // Update existing transaction in the list
+        updatedTransactions = transactionData.transactions.map((t: Transaction) =>
+            t.id === savedTransaction.id ? savedTransaction : t
+        );
+      }
+
+      // Recalculate summary
+      const totalIncome = updatedTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+      const totalExpenses = updatedTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+      setTransactionData({
+        ...transactionData,
+        transactions: updatedTransactions,
+        summary: {
+          ...transactionData.summary,
+          count: updatedTransactions.length,
+          total_income: totalIncome,
+          total_expenses: totalExpenses,
+          net_change: totalIncome - totalExpenses
+        }
+      });
+    }
+
+    // Add a success message
+    const successMessage: Message = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: `✅ Transaction ${isNewTransaction ? 'added' : 'updated'} successfully!`
+    };
+    setMessages(prev => [...prev, successMessage]);
+
+    setShowTransactionModal(false);
+    setEditingTransaction(null);
+    setIsNewTransaction(false);
+  };
+
   const sendMessage = async (content: string) => {
     const newMessage: Message = { id: uuidv4(), role: 'user', content };
     const updatedMessages = [...messages, newMessage];
@@ -139,7 +261,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
 
     try {
       const token = await getToken();
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/fin/conversations/query`, {
+      const res = await axios.post<ApiResponse>(`${process.env.NEXT_PUBLIC_API_URL}/fin/conversations/query`, {
         user_id: 'me',
         query: content,
         conversation_history: updatedMessages.map(({ role, content }) => ({ role, content })),
@@ -157,20 +279,48 @@ export default function FinConversationDashboard({ conversation }: Props) {
 
       setMessages([...updatedMessages, reply]);
 
-      // Check if the response includes account actions
+      // Check if the response includes account actions or transaction actions
       if (res.data.actions) {
-        res.data.actions.forEach((action: any) => {
-          if (action.action === 'initiate_plaid_connection') {
+        res.data.actions.forEach((action: FinAction) => {
+          if (action.action === 'initiate_plaid_connection' || action.type === 'initiate_plaid_connection') {
             setShowPlaidLink(true);
-          } else if (action.type === 'show_accounts' && action.data?.accounts) {
-            setAccountData(action.data.accounts);
+          } else if (action.type === 'show_accounts' && action.data) {
+            const accountsData = action.data as { accounts: Account[] };
+            if (accountsData.accounts) {
+              setAccountData(accountsData.accounts);
+            }
+          } else if (action.type === 'show_transactions' && action.data) {
+            const transData = action.data as TransactionData;
+            if (transData.transactions) {
+              setTransactionData(transData);
+            }
+          } else if (action.type === 'transaction_created' || action.type === 'transaction_updated') {
+            // If we're currently showing transactions, we might want to refresh them
+            // For now, we'll rely on the user to ask again or the success message
+            console.log('Transaction action completed:', action.type);
+          } else if (action.type === 'transaction_error' && action.error) {
+            // Show an error message for transaction operations
+            const errorMessage: Message = {
+              id: uuidv4(),
+              role: 'assistant',
+              content: `❌ ${action.error}`
+            };
+            setMessages(prev => [...prev, errorMessage]);
           }
         });
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError('Failed to fetch response. Please try again.');
+
+      // Add an error message to chat
+      const errorMessage: Message = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again.'
+      };
+      setMessages([...updatedMessages, errorMessage]);
     } finally {
       setLoading(false);
     }
@@ -178,7 +328,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, showPlaidLink, accountData]);
+  }, [messages, showPlaidLink, accountData, transactionData]);
 
   if (!isSignedIn) return <div>Loading...</div>;
 
@@ -230,6 +380,17 @@ export default function FinConversationDashboard({ conversation }: Props) {
                 />
             )}
 
+            {/* Transaction Display */}
+            {transactionData && (
+                <TransactionDisplay
+                    transactions={transactionData.transactions}
+                    summary={transactionData.summary}
+                    onEditTransaction={handleTransactionEdit}
+                    onDeleteTransaction={handleTransactionDelete}
+                    onAddTransaction={handleAddTransaction}
+                />
+            )}
+
             {/* Loading indicator */}
             {loading && (
                 <div className="flex justify-start mb-6">
@@ -265,6 +426,21 @@ export default function FinConversationDashboard({ conversation }: Props) {
           )}
           <MessageInput onSend={sendMessage} disabled={loading} />
         </div>
+
+        {/* Transaction Edit Modal */}
+        <TransactionEditModal
+            transaction={editingTransaction}
+            isOpen={showTransactionModal}
+            onClose={() => {
+              setShowTransactionModal(false);
+              setEditingTransaction(null);
+              setIsNewTransaction(false);
+            }}
+            onSave={handleTransactionSave}
+            onDelete={handleTransactionDelete}
+            accounts={accountData}
+            isNewTransaction={isNewTransaction}
+        />
       </div>
   );
 }

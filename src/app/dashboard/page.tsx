@@ -49,7 +49,7 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {/* Welcome Header - only show when no conversation is selected */}
+                {/* Welcome, Header - only show when no conversation is selected */}
                 {!selectedConversation && (
                     <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 bg-white">
                         <h1 className="text-2xl font-semibold text-gray-800">
