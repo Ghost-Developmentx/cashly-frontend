@@ -9,6 +9,8 @@ import PlaidChatLink from '../PlaidChatLink';
 import AccountDisplay from '../AccountDisplay';
 import TransactionDisplay from '../TransactionDisplay';
 import TransactionEditModal from '../TransactionEditModal';
+import StripeConnectLink from '../StripeConnectLink';
+import InvoiceDisplay, { Invoice } from '../InvoiceDisplay';
 import { useUser, useAuth } from '@clerk/nextjs';
 import {
   Message,
@@ -28,6 +30,7 @@ type Props = {
 };
 
 export default function FinConversationDashboard({ conversation }: Props) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,6 +42,8 @@ export default function FinConversationDashboard({ conversation }: Props) {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [isNewTransaction, setIsNewTransaction] = useState(false);
+  const [showStripeConnect, setShowStripeConnect] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<Invoice[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,6 +67,56 @@ export default function FinConversationDashboard({ conversation }: Props) {
     // Clear any previous errors when switching conversations
     setError(null);
   }, [conversation]); // Watch the entire conversation object
+
+  const handleStripeSuccess = () => {
+    console.log('Stripe connected successfully');
+    setShowStripeConnect(false);
+
+    const successMessage: Message = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: `✅ Great! Your Stripe account is now connected. You can now create and send invoices, track payments, and send reminders all through our chat!`
+    };
+    setMessages(prev => [...prev, successMessage]);
+  };
+
+  const handleStripeError = (error: string) => {
+    console.error('Stripe connection error:', error);
+    setShowStripeConnect(false);
+
+    const errorMessage: Message = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: `❌ ${error}`
+    };
+    setMessages(prev => [...prev, errorMessage]);
+  };
+
+  const handleInvoiceEdit = (invoice: Invoice) => {
+    // TODO: Implement invoice edit modal
+    console.log('Edit invoice:', invoice);
+  };
+
+  const handleSendReminder = async (invoice: Invoice) => {
+    const confirmMessage = `Send payment reminder to ${invoice.client_name} for invoice ${invoice.invoice_number}?`;
+    if (!confirm(confirmMessage)) return;
+
+    // Send it through Fin
+    await sendMessage(`Send payment reminder for invoice ${invoice.id}`);
+  };
+
+  const handleMarkPaid = async (invoice: Invoice) => {
+    const confirmMessage = `Mark invoice ${invoice.invoice_number} as paid?`;
+    if (!confirm(confirmMessage)) return;
+
+    // Send it through Fin
+    await sendMessage(`Mark invoice ${invoice.id} as paid`);
+  };
+
+  const handleCreateInvoice = () => {
+    // Trigger invoice creation flow through Fin
+    sendMessage("I want to create a new invoice");
+  };
 
   const handlePlaidSuccess = (accounts: Account[]) => {
     console.log('Plaid connection successful:', accounts);
@@ -259,6 +314,8 @@ export default function FinConversationDashboard({ conversation }: Props) {
     setLoading(true);
     setError(null);
 
+    console.log('🚀 [Frontend] Sending message:', content);
+
     try {
       const token = await getToken();
       const res = await axios.post<ApiResponse>(`${process.env.NEXT_PUBLIC_API_URL}/fin/conversations/query`, {
@@ -271,6 +328,13 @@ export default function FinConversationDashboard({ conversation }: Props) {
         },
       });
 
+      console.log('📥 [Frontend] Full API Response:', res.data);
+      console.log('📥 [Frontend] Response keys:', Object.keys(res.data));
+      console.log('📥 [Frontend] Actions:', res.data.actions);
+      console.log('📥 [Frontend] Actions length:', res.data.actions?.length || 0);
+      console.log('📥 [Frontend] Actions type:', typeof res.data.actions);
+      console.log('📥 [Frontend] Is actions array?:', Array.isArray(res.data.actions));
+
       const reply: Message = {
         id: uuidv4(),
         role: 'assistant',
@@ -279,39 +343,98 @@ export default function FinConversationDashboard({ conversation }: Props) {
 
       setMessages([...updatedMessages, reply]);
 
-      // Check if the response includes account actions or transaction actions
-      if (res.data.actions) {
-        res.data.actions.forEach((action: FinAction) => {
+      // Check if the response includes actions
+      if (res.data.actions && Array.isArray(res.data.actions) && res.data.actions.length > 0) {
+        console.log('🎯 [Frontend] Processing', res.data.actions.length, 'actions');
+
+        res.data.actions.forEach((action: FinAction, index: number) => {
+          console.log(`🎯 [Frontend] Action ${index}:`, {
+            type: action.type,
+            hasData: !!action.data,
+            action: action.action,
+            dataKeys: action.data ? Object.keys(action.data) : [],
+            fullAction: action
+          });
+
           if (action.action === 'initiate_plaid_connection' || action.type === 'initiate_plaid_connection') {
+            console.log('🔗 [Frontend] Showing Plaid link');
             setShowPlaidLink(true);
           } else if (action.type === 'show_accounts' && action.data) {
+            console.log('🏦 [Frontend] Setting account data');
             const accountsData = action.data as { accounts: Account[] };
+            console.log('🏦 [Frontend] Account data structure:', accountsData);
+            console.log('🏦 [Frontend] Accounts array:', accountsData.accounts);
+            console.log('🏦 [Frontend] Account count:', accountsData.accounts?.length);
+
             if (accountsData.accounts) {
               setAccountData(accountsData.accounts);
+              console.log('✅ [Frontend] Account data set successfully');
+            } else {
+              console.log('❌ [Frontend] No accounts array in data');
             }
           } else if (action.type === 'show_transactions' && action.data) {
+            console.log('💰 [Frontend] Setting transaction data');
             const transData = action.data as TransactionData;
+            console.log('💰 [Frontend] Transaction data structure:', transData);
+            console.log('💰 [Frontend] Transactions array:', transData.transactions);
+            console.log('💰 [Frontend] Transaction count:', transData.transactions?.length);
+            console.log('💰 [Frontend] Summary:', transData.summary);
+
             if (transData.transactions) {
               setTransactionData(transData);
+              console.log('✅ [Frontend] Transaction data set successfully');
+            } else {
+              console.log('❌ [Frontend] No transactions array in data');
             }
           } else if (action.type === 'transaction_created' || action.type === 'transaction_updated') {
-            // If we're currently showing transactions, we might want to refresh them
-            // For now, we'll rely on the user to ask again or the success message
-            console.log('Transaction action completed:', action.type);
+            console.log('📝 [Frontend] Transaction action completed:', action.type);
           } else if (action.type === 'transaction_error' && action.error) {
-            // Show an error message for transaction operations
+            console.log('❌ [Frontend] Transaction error:', action.error);
             const errorMessage: Message = {
               id: uuidv4(),
               role: 'assistant',
               content: `❌ ${action.error}`
             };
             setMessages(prev => [...prev, errorMessage]);
+          } else if (action.type === 'connect_stripe') {
+            console.log('💳 [Frontend] Showing Stripe connect');
+            setShowStripeConnect(true);
+          } else if (action.type === 'show_invoices' && action.data) {
+            console.log('📄 [Frontend] Setting invoice data');
+            const invoicesData = action.data as { invoices: Invoice[] };
+            if (invoicesData.invoices) {
+              setInvoiceData(invoicesData.invoices);
+              console.log('✅ [Frontend] Invoice data set successfully');
+            }
+          } else if (action.type === 'invoice_created' || action.type === 'invoice_marked_paid') {
+            console.log('📄 [Frontend] Invoice action completed:', action.type);
+            if (action.message) {
+              const notificationMessage: Message = {
+                id: uuidv4(),
+                role: 'assistant',
+                content: `✅ ${action.message}`
+              };
+              setMessages(prev => [...prev, notificationMessage]);
+            }
+          }
+          else {
+            console.log('❓ [Frontend] Unhandled action type:', action.type);
           }
         });
+      } else {
+        console.log('⚠️ [Frontend] No actions in response or actions is not an array');
+        console.log('⚠️ [Frontend] Actions value:', res.data.actions);
+        console.log('⚠️ [Frontend] Actions type:', typeof res.data.actions);
+        console.log('⚠️ [Frontend] Full response for debugging:', JSON.stringify(res.data, null, 2));
       }
 
     } catch (err: unknown) {
-      console.error(err);
+      console.error('❌ [Frontend] Error in sendMessage:', err);
+      if (axios.isAxiosError(err)) {
+        console.error('❌ [Frontend] Response status:', err.response?.status);
+        console.error('❌ [Frontend] Response data:', err.response?.data);
+        console.error('❌ [Frontend] Response headers:', err.response?.headers);
+      }
       setError('Failed to fetch response. Please try again.');
 
       // Add an error message to chat
@@ -329,6 +452,18 @@ export default function FinConversationDashboard({ conversation }: Props) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, showPlaidLink, accountData, transactionData]);
+
+  useEffect(() => {
+    console.log('🔄 [Frontend] Account data changed:', accountData.length, 'accounts');
+  }, [accountData]);
+
+  useEffect(() => {
+    console.log('🔄 [Frontend] Transaction data changed:', transactionData?.transactions?.length || 0, 'transactions');
+  }, [transactionData]);
+
+  useEffect(() => {
+    console.log('🔄 [Frontend] Plaid link visibility changed:', showPlaidLink);
+  }, [showPlaidLink]);
 
   if (!isSignedIn) return <div>Loading...</div>;
 
@@ -388,6 +523,23 @@ export default function FinConversationDashboard({ conversation }: Props) {
                     onEditTransaction={handleTransactionEdit}
                     onDeleteTransaction={handleTransactionDelete}
                     onAddTransaction={handleAddTransaction}
+                />
+            )}
+
+            {showStripeConnect && (
+                <StripeConnectLink
+                    onSuccess={handleStripeSuccess}
+                    onError={handleStripeError}
+                />
+            )}
+
+            {invoiceData.length > 0 && (
+                <InvoiceDisplay
+                    invoices={invoiceData}
+                    onEdit={handleInvoiceEdit}
+                    onSendReminder={handleSendReminder}
+                    onMarkPaid={handleMarkPaid}
+                    onCreateNew={handleCreateInvoice}
                 />
             )}
 

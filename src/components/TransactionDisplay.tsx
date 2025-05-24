@@ -139,7 +139,8 @@ export default function TransactionDisplay({
                     </div>
 
                     {/* Category Breakdown */}
-                    {Object.keys(summary.category_breakdown).length > 0 && (
+                    {summary?.category_breakdown && typeof summary.category_breakdown === 'object' && Object.keys(summary.category_breakdown).length > 0 &&
+                        (
                         <div>
                             <button
                                 onClick={() => setShowCategoryBreakdown(!showCategoryBreakdown)}
