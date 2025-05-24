@@ -130,13 +130,14 @@ export default function Sidebar({ onSelectConversation, selectedConversationId }
     return date.toLocaleDateString();
   };
 
-  const truncateTitle = (title: string, maxLength: number = 35) => {
-    if (title.length <= maxLength) return title;
-    return title.substring(0, maxLength) + '...';
+  const truncateTitle = (title: string | null, maxLength: number = 35) => {
+    const displayTitle = title || 'Untitled';
+    if (displayTitle.length <= maxLength) return displayTitle;
+    return displayTitle.substring(0, maxLength) + '...';
   };
 
   const filtered = conversations.filter((conv) =>
-      conv.title.toLowerCase().includes(search.toLowerCase())
+      (conv.title || 'Untitled').toLowerCase().includes(search.toLowerCase())
   );
 
   // Group conversations by date
@@ -237,13 +238,13 @@ export default function Sidebar({ onSelectConversation, selectedConversationId }
                             <div
                                 key={conv.id}
                                 className={`
-                        relative group rounded-lg transition-all duration-200
-                        hover:bg-gray-800 
-                        ${selectedConversationId === conv.id.toString()
+            relative group rounded-lg transition-all duration-200
+            hover:bg-gray-800 
+            ${selectedConversationId === conv.id.toString()
                                     ? 'bg-gray-800 border-l-2 border-blue-500'
                                     : 'hover:border-l-2 hover:border-gray-600'
                                 }
-                      `}
+        `}
                             >
                               {/* Main conversation clickable area */}
                               <button
@@ -257,7 +258,7 @@ export default function Sidebar({ onSelectConversation, selectedConversationId }
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                       </svg>
                                       <h4 className="text-sm font-medium text-white truncate">
-                                        {truncateTitle(conv.title || 'Untitled')}
+                                        {truncateTitle(conv.title)}
                                       </h4>
                                     </div>
                                     <p className="text-xs text-gray-400">

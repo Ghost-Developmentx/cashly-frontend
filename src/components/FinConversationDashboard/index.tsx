@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,7 +8,7 @@ import PlaidChatLink from '../PlaidChatLink';
 import AccountDisplay from '../AccountDisplay';
 import TransactionDisplay from '../TransactionDisplay';
 import TransactionEditModal from '../TransactionEditModal';
-import StripeConnectLink from '../StripeConnectLink';
+import StripeConnectSetup from '../StripeConnectSetup';
 import InvoiceDisplay, { Invoice } from '../InvoiceDisplay';
 import { useUser, useAuth } from '@clerk/nextjs';
 import {
@@ -42,8 +41,9 @@ export default function FinConversationDashboard({ conversation }: Props) {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [isNewTransaction, setIsNewTransaction] = useState(false);
-  const [showStripeConnect, setShowStripeConnect] = useState(false);
   const [invoiceData, setInvoiceData] = useState<Invoice[]>([]);
+  const [showStripeConnectSetup, setShowStripeConnectSetup] = useState(false);
+  const [stripeConnectStatus, setStripeConnectStatus] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,21 +68,26 @@ export default function FinConversationDashboard({ conversation }: Props) {
     setError(null);
   }, [conversation]); // Watch the entire conversation object
 
-  const handleStripeSuccess = () => {
-    console.log('Stripe connected successfully');
-    setShowStripeConnect(false);
+  const handleStripeConnectSuccess = (status: any) => {
+    console.log('Stripe Connect setup successful:', status);
+    setStripeConnectStatus(status);
+    setShowStripeConnectSetup(false);
 
     const successMessage: Message = {
       id: uuidv4(),
       role: 'assistant',
-      content: `✅ Great! Your Stripe account is now connected. You can now create and send invoices, track payments, and send reminders all through our chat!`
+      content: `🎉 Excellent! Your Stripe Connect account is now ${status.can_accept_payments ? 'active and ready to accept payments' : 'set up'}! ${
+          status.can_accept_payments
+              ? 'You can now send invoices and receive payments directly through Cashly.'
+              : 'Please complete the onboarding process to start accepting payments.'
+      }`
     };
     setMessages(prev => [...prev, successMessage]);
   };
 
-  const handleStripeError = (error: string) => {
-    console.error('Stripe connection error:', error);
-    setShowStripeConnect(false);
+  const handleStripeConnectError = (error: string) => {
+    console.error('Stripe Connect setup error:', error);
+    setShowStripeConnectSetup(false);
 
     const errorMessage: Message = {
       id: uuidv4(),
@@ -115,7 +120,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
 
   const handleCreateInvoice = () => {
     // Trigger invoice creation flow through Fin
-    sendMessage("I want to create a new invoice");
+    sendMessage("I want to create a new invoice").then(r => r);
   };
 
   const handlePlaidSuccess = (accounts: Account[]) => {
@@ -396,9 +401,30 @@ export default function FinConversationDashboard({ conversation }: Props) {
               content: `❌ ${action.error}`
             };
             setMessages(prev => [...prev, errorMessage]);
-          } else if (action.type === 'connect_stripe') {
-            console.log('💳 [Frontend] Showing Stripe connect');
-            setShowStripeConnect(true);
+          } else if (action.type === 'setup_stripe_connect') {
+            console.log('💳 [Frontend] Showing Stripe Connect setup');
+            setStripeConnectStatus(action.data);
+            setShowStripeConnectSetup(true);
+          } else if (action.type === 'show_stripe_connect_status') {
+            console.log('💳 [Frontend] Setting Stripe Connect status');
+            setStripeConnectStatus(action.data);
+          } else if (action.type === 'open_stripe_dashboard') {
+            console.log('💳 [Frontend] Opening Stripe dashboard');
+            // Add type safety for dashboard_url
+            const dashboardData = action.data as { dashboard_url?: string };
+            if (dashboardData?.dashboard_url) {
+              window.open(dashboardData.dashboard_url, '_blank');
+            }
+          } else if (action.type === 'stripe_connect_already_setup') {
+            console.log('💳 [Frontend] Stripe Connect already set up');
+            setStripeConnectStatus(action.data);
+
+            const notificationMessage: Message = {
+              id: uuidv4(),
+              role: 'assistant',
+              content: action.message || 'Your Stripe Connect account is already set up!'
+            };
+            setMessages(prev => [...prev, notificationMessage]);
           } else if (action.type === 'show_invoices' && action.data) {
             console.log('📄 [Frontend] Setting invoice data');
             const invoicesData = action.data as { invoices: Invoice[] };
@@ -416,8 +442,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
               };
               setMessages(prev => [...prev, notificationMessage]);
             }
-          }
-          else {
+          } else {
             console.log('❓ [Frontend] Unhandled action type:', action.type);
           }
         });
@@ -526,12 +551,14 @@ export default function FinConversationDashboard({ conversation }: Props) {
                 />
             )}
 
-            {showStripeConnect && (
-                <StripeConnectLink
-                    onSuccess={handleStripeSuccess}
-                    onError={handleStripeError}
+            {showStripeConnectSetup && (
+                <StripeConnectSetup
+                    onSuccess={handleStripeConnectSuccess}
+                    onError={handleStripeConnectError}
+                    currentStatus={stripeConnectStatus}
                 />
             )}
+
 
             {invoiceData.length > 0 && (
                 <InvoiceDisplay
@@ -541,6 +568,59 @@ export default function FinConversationDashboard({ conversation }: Props) {
                     onMarkPaid={handleMarkPaid}
                     onCreateNew={handleCreateInvoice}
                 />
+            )}
+
+            {/* Stripe Connect Status Display */}
+            {stripeConnectStatus && !showStripeConnectSetup && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4 my-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-900">Stripe Connect Status</h3>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        stripeConnectStatus.can_accept_payments
+                            ? 'bg-green-100 text-green-800'
+                            : stripeConnectStatus.connected
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                    }`}>
+        {stripeConnectStatus.can_accept_payments
+            ? 'Active'
+            : stripeConnectStatus.connected
+                ? 'Setup Required'
+                : 'Not Connected'
+        }
+      </span>
+                  </div>
+
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Charges Enabled:</span>
+                      <span className={stripeConnectStatus.charges_enabled ? 'text-green-600' : 'text-red-600'}>
+          {stripeConnectStatus.charges_enabled ? '✓' : '✗'}
+        </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Payouts Enabled:</span>
+                      <span className={stripeConnectStatus.payouts_enabled ? 'text-green-600' : 'text-red-600'}>
+          {stripeConnectStatus.payouts_enabled ? '✓' : '✗'}
+        </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Platform Fee:</span>
+                      <span>{stripeConnectStatus.platform_fee_percentage || 2.9}%</span>
+                    </div>
+                  </div>
+
+                  {stripeConnectStatus.can_accept_payments && (
+                      <div className="mt-4">
+                        <button
+                            onClick={() => sendMessage('Open my Stripe dashboard')}
+                            className="bg-purple-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-purple-700"
+                        >
+                          Open Dashboard
+                        </button>
+                      </div>
+                  )}
+                </div>
             )}
 
             {/* Loading indicator */}

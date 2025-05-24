@@ -105,3 +105,29 @@ export interface AccountApiResponse {
     message?: string;
     error?: string;
 }
+
+export interface StripeConnectAction extends FinAction {
+    type: 'setup_stripe_connect' | 'show_stripe_connect_status' | 'open_stripe_dashboard' | 'stripe_connect_already_setup';
+    data?: {
+        connected?: boolean;
+        status?: string;
+        charges_enabled?: boolean;
+        payouts_enabled?: boolean;
+        onboarding_complete?: boolean;
+        can_accept_payments?: boolean;
+        platform_fee_percentage?: number;
+        dashboard_url?: string;
+        onboarding_url?: string;
+    };
+}
+
+export interface StripeConnectStatus {
+    connected: boolean;
+    status?: string;
+    charges_enabled?: boolean;
+    payouts_enabled?: boolean;
+    onboarding_complete?: boolean;
+    can_accept_payments?: boolean;
+    platform_fee_percentage?: number;
+    requirements?: any;
+}
