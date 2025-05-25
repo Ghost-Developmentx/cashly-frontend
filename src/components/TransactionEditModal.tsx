@@ -7,10 +7,10 @@ interface TransactionEditModalProps {
     transaction: Transaction | null;
     isOpen: boolean;
     onClose: () => void;
-    onSave: (updatedTransaction: Transaction) => void;
-    onDelete?: (transactionId: string) => void;
+    onSave: (transaction: Transaction, isNewTransaction: boolean) => void; // ← Updated signature
+    onDelete: (transactionId: string) => void;
     accounts: Account[];
-    isNewTransaction?: boolean;
+    isNewTransaction: boolean;
 }
 
 export default function TransactionEditModal({
@@ -125,7 +125,7 @@ export default function TransactionEditModal({
             }
 
             if (response.data.success && response.data.transaction) {
-                onSave(response.data.transaction);
+                onSave(response.data.transaction, isNewTransaction);
                 onClose();
             } else {
                 setError(response.data.error || 'Failed to save transaction');
@@ -337,7 +337,7 @@ export default function TransactionEditModal({
                     {/* Buttons */}
                     <div className="flex items-center justify-between pt-6 border-t border-gray-200">
                         <div>
-                            {!isNewTransaction && onDelete && (
+                            {!isNewTransaction && onDelete !== undefined && (
                                 <button
                                     type="button"
                                     onClick={handleDelete}

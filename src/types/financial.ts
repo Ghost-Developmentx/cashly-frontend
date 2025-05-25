@@ -67,6 +67,11 @@ export interface FinAction {
     user_id?: string;
     error?: string;
     message?: string;
+    options?: Array<{
+        action: string;
+        text: string;
+        description: string;
+    }>;
     links?: Array<{
         text: string;
         url: string;
