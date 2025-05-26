@@ -27,6 +27,7 @@ interface FinDataDisplaysProps {
     onSendReminder: (invoice: Invoice) => void;
     onMarkPaid: (invoice: Invoice) => void;
     onCreateInvoice: () => void;
+    onSendInvoice?: (invoice: Invoice) => void;
     sendMessage: (content: string) => void;
 }
 
@@ -50,6 +51,7 @@ export function FinDataDisplays({
                                     onSendReminder,
                                     onMarkPaid,
                                     onCreateInvoice,
+                                    onSendInvoice,
                                     sendMessage,
                                 }: FinDataDisplaysProps) {
     return (
@@ -89,11 +91,13 @@ export function FinDataDisplays({
 
             {invoiceData.length > 0 && (
                 <InvoiceDisplay
+                    key={invoiceData.map(i => i.id).join('-')}
                     invoices={invoiceData}
                     onEdit={onInvoiceEdit}
                     onSendReminder={onSendReminder}
                     onMarkPaid={onMarkPaid}
                     onCreateNew={onCreateInvoice}
+                    onSendInvoice={onSendInvoice}
                 />
             )}
 

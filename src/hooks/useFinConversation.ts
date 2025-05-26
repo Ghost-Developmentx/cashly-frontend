@@ -173,7 +173,42 @@ export function useFinConversation(conversation: any) {
             case 'show_invoices':
                 const invoicesData = action.data as { invoices: Invoice[] };
                 if (invoicesData.invoices) {
-                    setState(prev => ({ ...prev, invoiceData: invoicesData.invoices }));
+                    setState(prev => ({
+                        ...prev,
+                        invoiceData: invoicesData.invoices,
+                        // Clear any loading states
+                        loading: false
+                    }));
+                }
+                break;
+
+            case 'invoice_sent':
+                // Update the invoice status in the state
+                const sentData = action.data as any;
+                if (sentData.invoice) {
+                    setState(prev => ({
+                        ...prev,
+                        invoiceData: prev.invoiceData.map(inv =>
+                            inv.id === sentData.invoice.id
+                                ? { ...inv, status: 'pending' as const }
+                                : inv
+                        )
+                    }));
+                }
+                break;
+
+            case 'invoice_marked_paid':
+                // Update the invoice status in the state
+                const paidData = action.data as any;
+                if (paidData.invoice) {
+                    setState(prev => ({
+                        ...prev,
+                        invoiceData: prev.invoiceData.map(inv =>
+                            inv.id === paidData.invoice.id
+                                ? { ...inv, status: 'paid' as const }
+                                : inv
+                        )
+                    }));
                 }
                 break;
 

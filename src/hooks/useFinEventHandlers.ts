@@ -273,6 +273,13 @@ export function useFinEventHandlers({
         void sendMessage("I want to create a new invoice");
     };
 
+    const handleSendInvoice = async (invoice: Invoice) => {
+        const confirmMessage = `Send invoice ${invoice.invoice_number || `#${invoice.id}`} to ${invoice.client_name}?`;
+        if (!confirm(confirmMessage)) return;
+
+        await sendMessage(`Send invoice ${invoice.id} to ${invoice.client_name}`);
+    };
+
     return {
         handlePlaidSuccess,
         handlePlaidError,
@@ -286,5 +293,6 @@ export function useFinEventHandlers({
         handleSendReminder,
         handleMarkPaid,
         handleCreateInvoice,
+        handleSendInvoice
     };
 }

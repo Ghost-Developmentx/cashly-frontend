@@ -21,6 +21,7 @@ interface InvoiceDisplayProps {
     onSendReminder?: (invoice: Invoice) => void;
     onMarkPaid?: (invoice: Invoice) => void;
     onCreateNew?: () => void;
+    onSendInvoice?: (invoice: Invoice) => void; // Add this prop
 }
 
 export default function InvoiceDisplay({
@@ -28,7 +29,8 @@ export default function InvoiceDisplay({
                                            onEdit,
                                            onSendReminder,
                                            onMarkPaid,
-                                           onCreateNew
+                                           onCreateNew,
+                                           onSendInvoice // Add this
                                        }: InvoiceDisplayProps) {
 
     const getStatusColor = (status: string) => {
@@ -40,6 +42,17 @@ export default function InvoiceDisplay({
             'cancelled': 'bg-gray-100 text-gray-500'
         };
         return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    };
+
+    const getStatusDisplay = (status: string) => {
+        const displays = {
+            'draft': { text: 'Draft', icon: '📝' },
+            'pending': { text: 'Sent', icon: '📧' },
+            'paid': { text: 'Paid', icon: '✅' },
+            'overdue': { text: 'Overdue', icon: '⚠️' },
+            'cancelled': { text: 'Cancelled', icon: '❌' }
+        };
+        return displays[status as keyof typeof displays] || { text: status, icon: '•' };
     };
 
     const getDaysUntilDue = (dueDate: string) => {
@@ -80,6 +93,7 @@ export default function InvoiceDisplay({
         .filter(inv => inv.status === 'paid')
         .reduce((sum, inv) => sum + inv.amount, 0);
     const overdueCount = invoices.filter(inv => inv.status === 'overdue').length;
+    const draftCount = invoices.filter(inv => inv.status === 'draft').length;
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg my-4 overflow-hidden">
@@ -90,11 +104,18 @@ export default function InvoiceDisplay({
                         <h3 className="text-lg font-medium text-gray-900">
                             {invoices.length} Invoice{invoices.length !== 1 ? 's' : ''}
                         </h3>
-                        {overdueCount > 0 && (
-                            <p className="text-sm text-red-600 mt-1">
-                                ⚠️ {overdueCount} overdue invoice{overdueCount !== 1 ? 's' : ''}
-                            </p>
-                        )}
+                        <div className="flex items-center gap-4 mt-1">
+                            {overdueCount > 0 && (
+                                <p className="text-sm text-red-600">
+                                    ⚠️ {overdueCount} overdue
+                                </p>
+                            )}
+                            {draftCount > 0 && (
+                                <p className="text-sm text-gray-600">
+                                    📝 {draftCount} draft{draftCount !== 1 ? 's' : ''}
+                                </p>
+                            )}
+                        </div>
                     </div>
                     {onCreateNew && (
                         <button
@@ -136,6 +157,7 @@ export default function InvoiceDisplay({
                 {invoices.map((invoice) => {
                     const daysUntilDue = getDaysUntilDue(invoice.due_date);
                     const isOverdue = invoice.status === 'pending' && daysUntilDue < 0;
+                    const statusDisplay = getStatusDisplay(invoice.status);
 
                     return (
                         <div
@@ -149,7 +171,7 @@ export default function InvoiceDisplay({
                                             {invoice.invoice_number || `INV-${invoice.id.slice(-6)}`}
                                         </h4>
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
-                                            {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                                            {statusDisplay.icon} {statusDisplay.text}
                                         </span>
                                         {isOverdue && (
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -160,6 +182,8 @@ export default function InvoiceDisplay({
 
                                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                                         <span>{invoice.client_name}</span>
+                                        <span>•</span>
+                                        <span>{invoice.client_email}</span>
                                         <span>•</span>
                                         <span>Due {formatDate(invoice.due_date)}</span>
                                         {invoice.description && (
@@ -179,6 +203,22 @@ export default function InvoiceDisplay({
                                     </div>
 
                                     <div className="flex items-center space-x-2">
+                                        {/* Draft invoice - show Send button */}
+                                        {invoice.status === 'draft' && onSendInvoice && (
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm(`Send invoice to ${invoice.client_name} at ${invoice.client_email}?`)) {
+                                                        onSendInvoice(invoice);
+                                                    }
+                                                }}
+                                                className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 transition-colors"
+                                                title="Send invoice"
+                                            >
+                                                Send Invoice
+                                            </button>
+                                        )}
+
+                                        {/* Pending invoice - show reminder option */}
                                         {invoice.status === 'pending' && onSendReminder && (
                                             <button
                                                 onClick={() => onSendReminder(invoice)}
@@ -190,6 +230,8 @@ export default function InvoiceDisplay({
                                                 </svg>
                                             </button>
                                         )}
+
+                                        {/* Pending invoice - mark as paid option */}
                                         {invoice.status === 'pending' && onMarkPaid && (
                                             <button
                                                 onClick={() => onMarkPaid(invoice)}
@@ -201,7 +243,9 @@ export default function InvoiceDisplay({
                                                 </svg>
                                             </button>
                                         )}
-                                        {onEdit && (
+
+                                        {/* Edit option for draft invoices */}
+                                        {invoice.status === 'draft' && onEdit && (
                                             <button
                                                 onClick={() => onEdit(invoice)}
                                                 className="p-1.5 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
@@ -215,6 +259,15 @@ export default function InvoiceDisplay({
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Draft Invoice Notice */}
+                            {invoice.status === 'draft' && (
+                                <div className="mt-3 p-3 bg-blue-50 rounded-md">
+                                    <p className="text-sm text-blue-800">
+                                        📝 This invoice is a draft. Review the details and send it when ready.
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Overdue Alert */}
                             {isOverdue && onSendReminder && (
