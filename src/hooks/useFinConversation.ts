@@ -182,6 +182,27 @@ export function useFinConversation(conversation: any) {
                 }
                 break;
 
+            case 'invoice_created':
+                // Extract invoice data and ID
+                const invoiceData = action.data as any;
+                const invoiceId = invoiceData.invoice_id || invoiceData.data?.invoice_id || invoiceData.invoice?.id;
+
+                if (invoiceId) {
+                    const successMessage: Message = {
+                        id: uuidv4(),
+                        role: 'assistant',
+                        content: invoiceData.message || `Invoice #${invoiceId} created successfully!`
+                    };
+                    addMessage(successMessage);
+                }
+
+                // Refresh the invoice list if needed
+                if (invoiceData.invoice) {
+                    // You might want to add the new invoice to your state
+                    // or trigger a refresh of the invoice list
+                }
+                break;
+
             case 'invoice_sent':
                 // Update the invoice status in the state
                 const sentData = action.data as any;
