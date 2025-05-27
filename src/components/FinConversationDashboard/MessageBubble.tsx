@@ -8,6 +8,19 @@ type Props = {
   };
 };
 
+// Simple markdown renderer for basic formatting
+const renderMarkdown = (text: string): string => {
+  return text
+      // Bold text: **text** -> <strong>text</strong>
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Italic text: *text* -> <em>text</em>
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Code: `text` -> <code>text</code>
+      .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>')
+      // Line breaks
+      .replace(/\n/g, '<br />');
+};
+
 export default function MessageBubble({ message }: Props) {
   const isUser = message.role === 'user';
 
@@ -40,9 +53,13 @@ export default function MessageBubble({ message }: Props) {
                 : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'
             }
           `}>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {message.content}
-              </p>
+              {/* Render markdown content */}
+              <div
+                  className="text-sm leading-relaxed break-words"
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(message.content)
+                  }}
+              />
             </div>
 
             {/* Timestamp (optional - you can add this if you have timestamp data) */}

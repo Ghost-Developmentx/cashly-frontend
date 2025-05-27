@@ -11,19 +11,8 @@ import {
     ApiResponse
 } from '@/types/financial';
 import { Invoice } from '@/components/InvoiceDisplay';
-
-type ConversationState = {
-    messages: Message[];
-    loading: boolean;
-    error: string | null;
-    showPlaidLink: boolean;
-    accountData: Account[];
-    transactionData: TransactionData | null;
-    invoiceData: Invoice[];
-    showStripeConnectSetup: boolean;
-    stripeConnectStatus: any;
-};
-
+import { InvoicePreviewData } from '@/components/InvoicePreview';
+import { ConversationState } from '@/types/conversation';
 
 export function useFinConversation(conversation: any) {
     const { getToken } = useAuth();
@@ -36,6 +25,8 @@ export function useFinConversation(conversation: any) {
         accountData: [],
         transactionData: null,
         invoiceData: [],
+        invoicePreview: null,
+        paymentUrlData: null,
         showStripeConnectSetup: false,
         stripeConnectStatus: null,
     });
@@ -68,6 +59,7 @@ export function useFinConversation(conversation: any) {
             accountData: [],
             transactionData: null,
             invoiceData: [],
+            invoicePreview: null,
             stripeConnectStatus: null,
             showStripeConnectSetup: false,
             showPlaidLink: false,
@@ -161,13 +153,13 @@ export function useFinConversation(conversation: any) {
             case 'setup_stripe_connect':
                 setState(prev => ({
                     ...prev,
-                    stripeConnectStatus: action.data,
+                    stripeConnectStatus: action.data as any, // Explicit cast to any
                     showStripeConnectSetup: true
                 }));
                 break;
 
             case 'show_stripe_connect_status':
-                setState(prev => ({ ...prev, stripeConnectStatus: action.data }));
+                setState(prev => ({ ...prev, stripeConnectStatus: action.data as any }));
                 break;
 
             case 'show_invoices':
@@ -176,50 +168,67 @@ export function useFinConversation(conversation: any) {
                     setState(prev => ({
                         ...prev,
                         invoiceData: invoicesData.invoices,
-                        // Clear any loading states
                         loading: false
                     }));
                 }
                 break;
 
             case 'invoice_created':
-                // Extract invoice data and ID
                 const invoiceData = action.data as any;
-                const invoiceId = invoiceData.invoice_id || invoiceData.data?.invoice_id || invoiceData.invoice?.id;
 
-                if (invoiceId) {
-                    const successMessage: Message = {
-                        id: uuidv4(),
-                        role: 'assistant',
-                        content: invoiceData.message || `Invoice #${invoiceId} created successfully!`
-                    };
-                    addMessage(successMessage);
-                }
-
-                // Refresh the invoice list if needed
                 if (invoiceData.invoice) {
-                    // You might want to add the new invoice to your state
-                    // or trigger a refresh of the invoice list
+                    // Create a properly typed InvoicePreviewData object
+                    const previewData: InvoicePreviewData = {
+                        id: invoiceData.invoice.id,
+                        invoice_number: invoiceData.invoice.invoice_number,
+                        client_name: invoiceData.invoice.client_name,
+                        client_email: invoiceData.invoice.client_email,
+                        amount: invoiceData.invoice.amount,
+                        status: invoiceData.invoice.status,
+                        issue_date: invoiceData.invoice.issue_date,
+                        due_date: invoiceData.invoice.due_date,
+                        description: invoiceData.invoice.description,
+                        currency: invoiceData.invoice.currency,
+                    };
+
+                    setState(prev => ({
+                        ...prev,
+                        invoicePreview: previewData
+                    }));
                 }
                 break;
 
-            case 'invoice_sent':
-                // Update the invoice status in the state
-                const sentData = action.data as any;
-                if (sentData.invoice) {
+            case 'send_invoice':
+                const sendData = action.data as any;
+
+                // Update invoice status silently
+                setState(prev => ({
+                    ...prev,
+                    invoicePreview: null, // Clear the preview
+                    invoiceData: prev.invoiceData.map(inv =>
+                        inv.id === sendData.invoice?.id
+                            ? { ...inv, status: 'pending' as const }
+                            : inv
+                    )
+                }));
+
+                // Show payment URL component (no text message)
+                if (sendData.stripe_invoice_url || sendData.hosted_invoice_url) {
+                    const paymentUrl = sendData.stripe_invoice_url || sendData.hosted_invoice_url;
+
                     setState(prev => ({
                         ...prev,
-                        invoiceData: prev.invoiceData.map(inv =>
-                            inv.id === sentData.invoice.id
-                                ? { ...inv, status: 'pending' as const }
-                                : inv
-                        )
+                        paymentUrlData: {
+                            paymentUrl: paymentUrl,
+                            invoiceId: sendData.invoice?.id,
+                            clientName: sendData.invoice?.client_name,
+                            amount: sendData.invoice?.amount
+                        }
                     }));
                 }
                 break;
 
             case 'invoice_marked_paid':
-                // Update the invoice status in the state
                 const paidData = action.data as any;
                 if (paidData.invoice) {
                     setState(prev => ({
@@ -231,6 +240,18 @@ export function useFinConversation(conversation: any) {
                         )
                     }));
                 }
+                break;
+
+            case 'create_invoice_error':
+            case 'send_invoice_error':
+            case 'invoice_error':
+                const errorData = action.data as any;
+                const errorMessage: Message = {
+                    id: uuidv4(),
+                    role: 'assistant',
+                    content: `❌ ${errorData.message || action.error || 'An error occurred with your invoice.'}`
+                };
+                addMessage(errorMessage);
                 break;
 
             case 'open_stripe_dashboard':

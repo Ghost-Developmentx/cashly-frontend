@@ -2,6 +2,7 @@
 
 import {Account, TransactionData} from "@/types/financial";
 import {Invoice} from "@/components/InvoiceDisplay";
+import { InvoicePreviewData } from '@/components/InvoicePreview';
 
 export interface Message {
     id: string;
@@ -15,6 +16,13 @@ export interface Conversation {
     messages: Message[];
 }
 
+export interface PaymentURLData {
+    paymentUrl: string;
+    invoiceId?: string;
+    clientName?: string;
+    amount?: number;
+}
+
 export interface ConversationState {
     messages: Message[];
     loading: boolean;
@@ -23,8 +31,10 @@ export interface ConversationState {
     accountData: Account[];
     transactionData: TransactionData | null;
     invoiceData: Invoice[];
+    invoicePreview: InvoicePreviewData | null;
+    paymentUrlData: PaymentURLData | null;
     showStripeConnectSetup: boolean;
-    stripeConnectStatus: StripeConnectStatus | null;
+    stripeConnectStatus: any;
 }
 
 export interface StripeConnectStatus {

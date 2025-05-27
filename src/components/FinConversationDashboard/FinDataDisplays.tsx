@@ -5,7 +5,10 @@ import AccountDisplay from '../AccountDisplay';
 import TransactionDisplay from '../TransactionDisplay';
 import StripeConnectSetup from '../StripeConnectSetup';
 import InvoiceDisplay from '../InvoiceDisplay';
+import InvoicePreview, { InvoicePreviewData } from '../InvoicePreview';
 import StripeConnectStatus from './StripeConnectStatus';
+import PaymentURLDisplay from '../PaymentURLDisplay'
+import {PaymentURLData} from "@/types/conversation";
 
 interface FinDataDisplaysProps {
     showPlaidLink: boolean;
@@ -14,6 +17,8 @@ interface FinDataDisplaysProps {
     showStripeConnectSetup: boolean;
     stripeConnectStatus: any;
     invoiceData: Invoice[];
+    invoicePreview: InvoicePreviewData | null;
+    paymentUrlData: PaymentURLData | null;
     onPlaidSuccess: (accounts: Account[]) => void;
     onPlaidError: (error: string) => void;
     onPlaidExit: () => void;
@@ -38,6 +43,8 @@ export function FinDataDisplays({
                                     showStripeConnectSetup,
                                     stripeConnectStatus,
                                     invoiceData,
+                                    invoicePreview,
+                                    paymentUrlData,
                                     onPlaidSuccess,
                                     onPlaidError,
                                     onPlaidExit,
@@ -78,6 +85,24 @@ export function FinDataDisplays({
                     onEditTransaction={onTransactionEdit}
                     onDeleteTransaction={onTransactionDelete}
                     onAddTransaction={onAddTransaction}
+                />
+            )}
+
+            {invoicePreview && (
+                <InvoicePreview
+                    invoice={invoicePreview}
+                    onSend={(invoiceId) => sendMessage(`send invoice ${invoiceId}`)}
+                    onEdit={() => {/* Handle edit if needed */}}
+                    onCancel={() => {/* Handle cancel if needed */}}
+                />
+            )}
+
+            {paymentUrlData && (
+                <PaymentURLDisplay
+                    paymentUrl={paymentUrlData.paymentUrl}
+                    invoiceId={paymentUrlData.invoiceId}
+                    clientName={paymentUrlData.clientName}
+                    amount={paymentUrlData.amount}
                 />
             )}
 

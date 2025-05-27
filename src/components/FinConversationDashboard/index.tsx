@@ -53,6 +53,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
                 showStripeConnectSetup={state.showStripeConnectSetup}
                 stripeConnectStatus={state.stripeConnectStatus}
                 invoiceData={state.invoiceData}
+                invoicePreview={state.invoicePreview}
                 onPlaidSuccess={eventHandlers.handlePlaidSuccess}
                 onPlaidError={eventHandlers.handlePlaidError}
                 onPlaidExit={eventHandlers.handlePlaidExit}
