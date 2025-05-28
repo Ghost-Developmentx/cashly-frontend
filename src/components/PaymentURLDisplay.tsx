@@ -22,6 +22,11 @@ export default function PaymentURLDisplay({
         window.open(paymentUrl, '_blank');
     };
 
+    const displayUrl = paymentUrl.length > 50
+        ? paymentUrl.substring(0, 47) + '...'
+        : paymentUrl;
+
+
     return (
         <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 my-4">
             <div className="flex items-start space-x-3">
@@ -46,7 +51,7 @@ export default function PaymentURLDisplay({
                         <div className="flex items-center space-x-2">
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm text-blue-600 truncate font-mono">
-                                    {paymentUrl}
+                                    {displayUrl}
                                 </p>
                             </div>
                             <div className="flex space-x-2">

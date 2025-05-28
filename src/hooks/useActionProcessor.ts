@@ -14,10 +14,16 @@ export const useActionProcessor = () => {
         const keyData = {
             type: action.type,
             id: (action.data as any)?.id || (action.data as any)?.invoice_id || (action.data as any)?.transaction_id,
-            timestamp: Math.floor(Date.now() / 1000) // Round to seconds to avoid micro-duplicates
+            // Check if this is a response action by looking for success property at the root level or in data
+            isSuccess: action.success ? 'success' : ((action.data as any)?.success ? 'success' : 'request'),
+            // Use a unique identifier instead of timestamp to avoid collisions
+            uniqueId: uuidv4().substring(0, 8)
         };
-        return `${keyData.type}-${keyData.id || 'no-id'}-${keyData.timestamp}`;
+        return `${keyData.type}-${keyData.id || 'no-id'}-${keyData.isSuccess}-${keyData.uniqueId}`;
     };
+
+
+
 
     const processAction = (
         action: FinAction,
@@ -49,6 +55,7 @@ export const useActionProcessor = () => {
         try {
             switch (action.type) {
                 // Bank Connection Actions
+                case ACTION_TYPES.INITIATE_PLAID_CONNECTION:
                 case ACTION_TYPES.PLAID_CONNECTION_INITIATED:
                     handlePlaidConnectionInitiated(setState);
                     break;
@@ -69,12 +76,16 @@ export const useActionProcessor = () => {
                     break;
 
                 // Invoice Actions
+                case ACTION_TYPES.INVOICE_CREATED:
                 case ACTION_TYPES.INVOICE_CREATE_SUCCESS:
                     handleInvoiceCreateSuccess(action, setState);
                     break;
+
+                case ACTION_TYPES.SEND_INVOICE:
                 case ACTION_TYPES.INVOICE_SEND_SUCCESS:
                     handleInvoiceSendSuccess(action, setState);
                     break;
+
                 case ACTION_TYPES.INVOICES_SHOW:
                     handleInvoicesShow(action, setState);
                     break;
@@ -167,24 +178,52 @@ const handleInvoiceCreateSuccess = (action: FinAction, setState: React.Dispatch<
 };
 
 const handleInvoiceSendSuccess = (action: FinAction, setState: React.Dispatch<React.SetStateAction<ConversationState>>) => {
+    console.log("Processing invoice send success:", action);
     const sendData = action.data as any;
 
-    setState(prev => ({
-        ...prev,
-        invoicePreview: null, // Clear the preview
-        invoiceData: prev.invoiceData.map(inv =>
-            inv.id === sendData.invoice?.id
-                ? { ...inv, status: 'pending' as const }
-                : inv
-        ),
-        paymentUrlData: (sendData.stripe_invoice_url || sendData.hosted_invoice_url) ? {
-            paymentUrl: sendData.stripe_invoice_url || sendData.hosted_invoice_url,
-            invoiceId: sendData.invoice?.id,
-            clientName: sendData.invoice?.client_name,
-            amount: sendData.invoice?.amount
-        } : null
-    }));
+    // Defensive programming - check if sendData exists
+    if (!sendData) {
+        console.error('Invoice send success action missing data:', action);
+        return;
+    }
+
+    // Debug the data structure
+    console.log("Send data:", sendData);
+    console.log("Invoice:", sendData.invoice);
+    console.log("Payment URL:", sendData.stripe_invoice_url || sendData.hosted_invoice_url);
+
+    // Create the payment URL data object
+    const paymentUrlData = (sendData.stripe_invoice_url || sendData.hosted_invoice_url) ? {
+        paymentUrl: sendData.stripe_invoice_url || sendData.hosted_invoice_url,
+        invoiceId: sendData.invoice?.id,
+        clientName: sendData.invoice?.client_name,
+        amount: sendData.invoice?.amount
+    } : null;
+
+    console.log("Created paymentUrlData:", paymentUrlData);
+
+    setState(prev => {
+        // Log the current state
+        console.log("Previous state:", prev);
+
+        const updatedState = {
+            ...prev,
+            invoicePreview: null, // Clear the preview
+            invoiceData: Array.isArray(prev.invoiceData) ? prev.invoiceData.map(inv =>
+                inv.id === sendData.invoice?.id
+                    ? { ...inv, status: 'pending' as const }
+                    : inv
+            ) : [],
+            paymentUrlData: paymentUrlData
+        };
+
+        // Log the updated state
+        console.log("Updated state with paymentUrlData:", updatedState.paymentUrlData);
+
+        return updatedState;
+    });
 };
+
 
 const handleInvoicesShow = (action: FinAction, setState: React.Dispatch<React.SetStateAction<ConversationState>>) => {
     const invoicesData = action.data as { invoices: Invoice[] };

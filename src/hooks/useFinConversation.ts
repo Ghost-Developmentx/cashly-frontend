@@ -117,6 +117,9 @@ export function useFinConversation(conversation: any) {
                         console.warn(`Failed to process action ${index + 1}:`, action);
                     }
                 });
+
+                console.log("Final conversation state after processing actions:", state);
+
             }
 
         } catch (err: unknown) {

@@ -98,13 +98,14 @@ export function FinDataDisplays({
             )}
 
             {paymentUrlData && (
-                <PaymentURLDisplay
-                    paymentUrl={paymentUrlData.paymentUrl}
-                    invoiceId={paymentUrlData.invoiceId}
-                    clientName={paymentUrlData.clientName}
-                    amount={paymentUrlData.amount}
-                />
+                    <PaymentURLDisplay
+                        paymentUrl={paymentUrlData.paymentUrl}
+                        invoiceId={paymentUrlData.invoiceId}
+                        clientName={paymentUrlData.clientName}
+                        amount={paymentUrlData.amount}
+                    />
             )}
+
 
             {showStripeConnectSetup && (
                 <StripeConnectSetup

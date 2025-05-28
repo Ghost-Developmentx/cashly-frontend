@@ -66,6 +66,7 @@ export interface FinAction {
     count?: number;
     user_id?: string;
     error?: string;
+    success?: boolean;
     message?: string;
     options?: Array<{
         action: string;

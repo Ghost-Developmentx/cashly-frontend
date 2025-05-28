@@ -54,6 +54,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
                 stripeConnectStatus={state.stripeConnectStatus}
                 invoiceData={state.invoiceData}
                 invoicePreview={state.invoicePreview}
+                paymentUrlData={state.paymentUrlData}
                 onPlaidSuccess={eventHandlers.handlePlaidSuccess}
                 onPlaidError={eventHandlers.handlePlaidError}
                 onPlaidExit={eventHandlers.handlePlaidExit}

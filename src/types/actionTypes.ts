@@ -3,6 +3,7 @@ export const ACTION_TYPES = {
     PLAID_CONNECTION_INITIATED: 'plaid_connection_initiated',
     PLAID_CONNECTION_SUCCESS: 'plaid_connection_success',
     PLAID_CONNECTION_ERROR: 'plaid_connection_error',
+    INITIATE_PLAID_CONNECTION: 'initiate_plaid_connection',
 
     // Account Actions
     ACCOUNTS_SHOW: 'show_accounts',
@@ -23,6 +24,9 @@ export const ACTION_TYPES = {
     INVOICE_CREATE_INITIATED: 'invoice_create_initiated',
     INVOICE_CREATE_SUCCESS: 'invoice_create_success',
     INVOICE_CREATE_ERROR: 'invoice_create_error',
+    INVOICE_CREATED: 'invoice_created',
+    SEND_INVOICE: 'send_invoice',
+
 
     INVOICE_SEND_INITIATED: 'invoice_send_initiated',
     INVOICE_SEND_SUCCESS: 'invoice_send_success',
