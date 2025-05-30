@@ -69,6 +69,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
                 onMarkPaid={eventHandlers.handleMarkPaid}
                 onCreateInvoice={eventHandlers.handleCreateInvoice}
                 onSendInvoice={eventHandlers.handleSendInvoice}
+                onDeleteInvoice={eventHandlers.handleDeleteInvoice}
                 sendMessage={sendMessage}
             />
 

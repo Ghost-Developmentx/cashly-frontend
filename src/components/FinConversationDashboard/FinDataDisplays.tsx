@@ -33,6 +33,7 @@ interface FinDataDisplaysProps {
     onMarkPaid: (invoice: Invoice) => void;
     onCreateInvoice: () => void;
     onSendInvoice?: (invoice: Invoice) => void;
+    onDeleteInvoice?: (invoice: Invoice) => void;
     sendMessage: (content: string) => void;
 }
 
@@ -59,6 +60,7 @@ export function FinDataDisplays({
                                     onMarkPaid,
                                     onCreateInvoice,
                                     onSendInvoice,
+                                    onDeleteInvoice,
                                     sendMessage,
                                 }: FinDataDisplaysProps) {
     return (
@@ -94,6 +96,7 @@ export function FinDataDisplays({
                     onSend={(invoiceId) => sendMessage(`send invoice ${invoiceId}`)}
                     onEdit={() => {/* Handle edit if needed */}}
                     onCancel={() => {/* Handle cancel if needed */}}
+                    onDelete={(invoiceId) => sendMessage(`delete invoice ${invoiceId}`)}
                 />
             )}
 
@@ -124,6 +127,7 @@ export function FinDataDisplays({
                     onMarkPaid={onMarkPaid}
                     onCreateNew={onCreateInvoice}
                     onSendInvoice={onSendInvoice}
+                    onDeleteInvoice={onDeleteInvoice}
                 />
             )}
 

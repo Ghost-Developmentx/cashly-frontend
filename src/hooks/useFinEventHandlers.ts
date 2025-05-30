@@ -280,6 +280,13 @@ export function useFinEventHandlers({
         await sendMessage(`Send invoice ${invoice.id} to ${invoice.client_name}`);
     };
 
+    const handleDeleteInvoice = async (invoice: Invoice) => {
+        const confirmMessage = `Are you sure you want to permanently delete the invoice for ${invoice.client_name}?\n\nThis will remove it from both Cashly and Stripe and cannot be undone.`;
+        if (!confirm(confirmMessage)) return;
+
+        await sendMessage(`Delete invoice ${invoice.id}`);
+    };
+
     return {
         handlePlaidSuccess,
         handlePlaidError,
@@ -293,6 +300,7 @@ export function useFinEventHandlers({
         handleSendReminder,
         handleMarkPaid,
         handleCreateInvoice,
-        handleSendInvoice
+        handleSendInvoice,
+        handleDeleteInvoice
     };
 }

@@ -26,6 +26,8 @@ export const ACTION_TYPES = {
     INVOICE_CREATE_ERROR: 'invoice_create_error',
     INVOICE_CREATED: 'invoice_created',
     SEND_INVOICE: 'send_invoice',
+    INVOICE_DELETE_SUCCESS: 'invoice_delete_success',
+    INVOICE_DELETE_ERROR: 'invoice_delete_error',
 
 
     INVOICE_SEND_INITIATED: 'invoice_send_initiated',

@@ -90,6 +90,10 @@ export const useActionProcessor = () => {
                     handleInvoicesShow(action, setState);
                     break;
 
+                case ACTION_TYPES.INVOICE_DELETE_SUCCESS:
+                    handleInvoiceDeleteSuccess(action, setState, addMessage);
+                    break;
+
                 // Stripe Actions
                 case ACTION_TYPES.STRIPE_CONNECT_SETUP_INITIATED:
                     handleStripeConnectSetup(action, setState);
@@ -104,6 +108,7 @@ export const useActionProcessor = () => {
                 // Error Actions
                 case ACTION_TYPES.INVOICE_CREATE_ERROR:
                 case ACTION_TYPES.INVOICE_SEND_ERROR:
+                case ACTION_TYPES.INVOICE_DELETE_ERROR:
                 case ACTION_TYPES.STRIPE_CONNECT_ERROR:
                 case ACTION_TYPES.GENERAL_ERROR:
                     handleError(action, addMessage);
@@ -232,6 +237,30 @@ const handleInvoicesShow = (action: FinAction, setState: React.Dispatch<React.Se
             ...prev,
             invoiceData: invoicesData.invoices,
             loading: false
+        }));
+    }
+};
+
+const handleInvoiceDeleteSuccess = (
+    action: FinAction,
+    setState: React.Dispatch<React.SetStateAction<ConversationState>>,
+    addMessage: (message: Message) => void
+) => {
+    console.log("Processing invoice delete success:", action);
+    const deleteData = action.data as any;
+
+    const successMessage: Message = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: `✅ ${action.message || 'Invoice deleted successfully!'}`
+    };
+    addMessage(successMessage);
+
+    if (deleteData?.deleted_invoice?.id) {
+        setState(prev => ({
+            ...prev,
+            invoiceData: prev.invoiceData.filter(inv => inv.id !== deleteData.deleted_invoice.id),
+            invoicePreview: prev.invoicePreview?.id === deleteData.deleted_invoice.id ? null : prev.invoicePreview
         }));
     }
 };

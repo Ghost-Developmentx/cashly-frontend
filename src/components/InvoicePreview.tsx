@@ -19,13 +19,15 @@ interface InvoicePreviewProps {
     onSend?: (invoiceId: string) => void;
     onEdit?: (invoice: InvoicePreviewData) => void;
     onCancel?: (invoiceId: string) => void;
+    onDelete?: (invoiceId: string) => void;
 }
 
 export default function InvoicePreview({
                                            invoice,
                                            onSend,
                                            onEdit,
-                                           onCancel
+                                           onCancel,
+                                           onDelete
                                        }: InvoicePreviewProps) {
     const isDraft = invoice.status === 'draft';
 
@@ -144,6 +146,18 @@ export default function InvoicePreview({
                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                                 >
                                     Edit
+                                </button>
+                            )}
+                            {onDelete && (
+                                <button
+                                    onClick={() => {
+                                        if (confirm(`Are you sure you want to delete this draft invoice for ${invoice.client_name}? This action cannot be undone.`)) {
+                                            onDelete(invoice.id);
+                                        }
+                                    }}
+                                    className="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors"
+                                >
+                                    Delete
                                 </button>
                             )}
                             {onCancel && (
