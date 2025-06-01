@@ -5,8 +5,8 @@ import Link from 'next/link';
 
 export default function SignUpPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-8">
-            <div className="max-w-md w-full">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
                 {/* Logo and Header */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
@@ -23,7 +23,7 @@ export default function SignUpPage() {
                 {/* Benefits */}
                 <div className="bg-blue-50 rounded-xl p-4 mb-6">
                     <div className="flex items-start space-x-3">
-                        <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-sm text-blue-900">
@@ -39,7 +39,7 @@ export default function SignUpPage() {
                         appearance={{
                             elements: {
                                 rootBox: "w-full",
-                                card: "shadow-none",
+                                card: "shadow-none p-0",
                                 headerTitle: "hidden",
                                 headerSubtitle: "hidden",
                                 socialButtonsBlockButton: "w-full border border-gray-300 hover:bg-gray-50",
@@ -51,17 +51,18 @@ export default function SignUpPage() {
                         path="/sign-up"
                         routing="path"
                         signInUrl="/sign-in"
-                        forceRedirectUrl="/onboarding"
+                        forceRedirectUrl="/complete-auth"
                     />
+                </div>
 
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                            Already have an account?{' '}
-                            <Link href="/sign-in" className="text-blue-600 hover:text-blue-700 font-medium">
-                                Sign in
-                            </Link>
-                        </p>
-                    </div>
+                {/* Footer Links */}
+                <div className="mt-6 text-center">
+                    <p className="text-sm text-gray-600">
+                        Already have an account?{' '}
+                        <Link href="/sign-in" className="text-blue-600 hover:text-blue-700 font-medium">
+                            Sign in
+                        </Link>
+                    </p>
                 </div>
 
                 {/* Trust Indicators */}

@@ -5,8 +5,8 @@ import Link from 'next/link';
 
 export default function SignInPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-            <div className="max-w-md w-full">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
                 {/* Logo and Header */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
@@ -26,7 +26,7 @@ export default function SignInPage() {
                         appearance={{
                             elements: {
                                 rootBox: "w-full",
-                                card: "shadow-none",
+                                card: "shadow-none p-0",
                                 headerTitle: "hidden",
                                 headerSubtitle: "hidden",
                                 socialButtonsBlockButton: "w-full border border-gray-300 hover:bg-gray-50",
@@ -40,15 +40,16 @@ export default function SignInPage() {
                         signUpUrl="/sign-up"
                         forceRedirectUrl="/dashboard"
                     />
+                </div>
 
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                            Don&#39;t have an account?{' '}
-                            <Link href="/sign-up" className="text-blue-600 hover:text-blue-700 font-medium">
-                                Sign up for free
-                            </Link>
-                        </p>
-                    </div>
+                {/* Footer Links */}
+                <div className="mt-6 text-center">
+                    <p className="text-sm text-gray-600">
+                        Don&#39;t have an account?{' '}
+                        <Link href="/sign-up" className="text-blue-600 hover:text-blue-700 font-medium">
+                            Sign up for free
+                        </Link>
+                    </p>
                 </div>
 
                 {/* Footer */}
