@@ -3,6 +3,7 @@
 import {Account, TransactionData} from "@/types/financial";
 import {Invoice} from "@/components/InvoiceDisplay";
 import { InvoicePreviewData } from '@/components/InvoicePreview';
+import { ForecastData } from '@/types/forecast';
 
 export interface Message {
     id: string;
@@ -35,6 +36,7 @@ export interface ConversationState {
     paymentUrlData: PaymentURLData | null;
     showStripeConnectSetup: boolean;
     stripeConnectStatus: any;
+    forecastData: ForecastData | null;
 }
 
 export interface StripeConnectStatus {

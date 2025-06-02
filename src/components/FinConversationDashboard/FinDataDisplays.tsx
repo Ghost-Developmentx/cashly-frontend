@@ -9,6 +9,8 @@ import InvoicePreview, { InvoicePreviewData } from '../InvoicePreview';
 import StripeConnectStatus from './StripeConnectStatus';
 import PaymentURLDisplay from '../PaymentURLDisplay'
 import {PaymentURLData} from "@/types/conversation";
+import ForecastDisplay from '../ForecastDisplay';
+import { ForecastData, ScenarioAdjustment } from '@/types/forecast';
 
 interface FinDataDisplaysProps {
     showPlaidLink: boolean;
@@ -22,6 +24,9 @@ interface FinDataDisplaysProps {
     onPlaidSuccess: (accounts: Account[]) => void;
     onPlaidError: (error: string) => void;
     onPlaidExit: () => void;
+    forecastData: ForecastData | null;
+    onRunScenario?: (adjustments: ScenarioAdjustment[]) => void;
+    onExportForecast?: () => void;
     onAccountDisconnect: (accountId: string) => void;
     onTransactionEdit: (transaction: Transaction) => void;
     onTransactionDelete: (transactionId: string) => void;
@@ -49,6 +54,9 @@ export function FinDataDisplays({
                                     onPlaidSuccess,
                                     onPlaidError,
                                     onPlaidExit,
+                                    forecastData,
+                                    onRunScenario,
+                                    onExportForecast,
                                     onAccountDisconnect,
                                     onTransactionEdit,
                                     onTransactionDelete,
@@ -97,6 +105,14 @@ export function FinDataDisplays({
                     onEdit={() => {/* Handle edit if needed */}}
                     onCancel={() => {/* Handle cancel if needed */}}
                     onDelete={(invoiceId) => sendMessage(`delete invoice ${invoiceId}`)}
+                />
+            )}
+
+            {forecastData && (
+                <ForecastDisplay
+                    forecast={forecastData}
+                    onRunScenario={onRunScenario}
+                    onExport={onExportForecast}
                 />
             )}
 

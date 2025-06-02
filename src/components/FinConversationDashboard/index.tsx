@@ -21,7 +21,14 @@ type Props = {
 export default function FinConversationDashboard({ conversation }: Props) {
   const { isSignedIn } = useUser();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { state, sendMessage, addMessage, setState } = useFinConversation(conversation);
+  const {
+    state,
+    sendMessage,
+    addMessage,
+    setState,
+    runScenario,
+    exportForecast
+  } = useFinConversation(conversation);
   const transactionModal = useTransactionModal();
 
   const eventHandlers = useFinEventHandlers({
@@ -35,7 +42,13 @@ export default function FinConversationDashboard({ conversation }: Props) {
   // Auto-scroll to the bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [state.messages, state.showPlaidLink, state.accountData, state.transactionData]);
+  }, [
+    state.messages,
+    state.showPlaidLink,
+    state.accountData,
+    state.transactionData,
+    state.forecastData
+  ]);
 
   if (!isSignedIn) return <div>Loading...</div>;
 
@@ -57,6 +70,7 @@ export default function FinConversationDashboard({ conversation }: Props) {
                 paymentUrlData={state.paymentUrlData}
                 onPlaidSuccess={eventHandlers.handlePlaidSuccess}
                 onPlaidError={eventHandlers.handlePlaidError}
+                forecastData={state.forecastData}
                 onPlaidExit={eventHandlers.handlePlaidExit}
                 onAccountDisconnect={eventHandlers.handleAccountDisconnect}
                 onTransactionEdit={transactionModal.openEditModal}
@@ -70,6 +84,8 @@ export default function FinConversationDashboard({ conversation }: Props) {
                 onCreateInvoice={eventHandlers.handleCreateInvoice}
                 onSendInvoice={eventHandlers.handleSendInvoice}
                 onDeleteInvoice={eventHandlers.handleDeleteInvoice}
+                onRunScenario={runScenario}
+                onExportForecast={exportForecast}
                 sendMessage={sendMessage}
             />
 

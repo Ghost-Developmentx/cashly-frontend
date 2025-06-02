@@ -9,6 +9,7 @@ import {
     FinAction,
     ApiResponse
 } from '@/types/financial';
+import { useForecast } from './useForecast';
 import { ConversationState } from '@/types/conversation';
 import { useActionProcessor } from './useActionProcessor';
 
@@ -28,7 +29,16 @@ export function useFinConversation(conversation: any) {
         paymentUrlData: null,
         showStripeConnectSetup: false,
         stripeConnectStatus: null,
+        forecastData: null,  // Add this line
     });
+
+    const {
+        forecastData,
+        handleForecastAction,
+        runScenario,
+        exportForecast,
+        clearForecast
+    } = useForecast();
 
     // Initialize messages from a conversation
     useEffect(() => {
@@ -43,6 +53,10 @@ export function useFinConversation(conversation: any) {
             setState(prev => ({ ...prev, messages: [] }));
         }
     }, [conversation]);
+
+    useEffect(() => {
+        setState(prev => ({ ...prev, forecastData }));
+    }, [forecastData]);
 
     const addMessage = (message: Message) => {
         setState(prev => ({ ...prev, messages: [...prev.messages, message] }));
@@ -63,8 +77,10 @@ export function useFinConversation(conversation: any) {
             stripeConnectStatus: null,
             showStripeConnectSetup: false,
             showPlaidLink: false,
+            forecastData: null,
         }));
-        clearProcessedActions(); // Clear processed actions when starting new conversation
+        clearProcessedActions();
+        clearForecast();
     };
 
     const sendMessage = async (content: string) => {
@@ -112,6 +128,14 @@ export function useFinConversation(conversation: any) {
 
                 res.data.actions.forEach((action: FinAction, index: number) => {
                     console.log(`Action ${index + 1}:`, action);
+
+                    // First, try to handle forecast actions
+                    if (handleForecastAction(action)) {
+                        console.log('Handled forecast action:', action.type);
+                        return;
+                    }
+
+                    // Then process other actions
                     const processed = processAction(action, setState, addMessage);
                     if (!processed) {
                         console.warn(`Failed to process action ${index + 1}:`, action);
@@ -119,7 +143,6 @@ export function useFinConversation(conversation: any) {
                 });
 
                 console.log("Final conversation state after processing actions:", state);
-
             }
 
         } catch (err: unknown) {
@@ -146,5 +169,7 @@ export function useFinConversation(conversation: any) {
         addMessage,
         updateMessages,
         setState,
+        runScenario,
+        exportForecast,
     };
 }

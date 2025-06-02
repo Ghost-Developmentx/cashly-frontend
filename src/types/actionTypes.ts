@@ -46,6 +46,7 @@ export const ACTION_TYPES = {
 
     // Forecasting & Analysis Actions
     FORECAST_SHOW: 'show_forecast',
+    SCENARIO_FORECAST_SHOW: 'show_scenario_forecast',
     BUDGET_SHOW: 'show_budget',
     TRENDS_SHOW: 'show_trends',
     ANOMALIES_SHOW: 'show_anomalies',
