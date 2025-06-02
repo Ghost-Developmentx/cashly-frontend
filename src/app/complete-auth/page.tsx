@@ -10,26 +10,18 @@ export default function CompleteAuthPage() {
 
   useEffect(() => {
     const syncUser = async () => {
-      if (!isLoaded) {
-        console.log("🔄 Clerk is not loaded yet");
-        return;
-      }
+      if (!isLoaded) return;
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      console.log("✅ Clerk is loaded");
-      console.log("🌐 API URL is:", apiUrl);
 
       try {
         const token = await getToken();
-        console.log("🔑 Fetched Clerk JWT:", token?.substring(0, 20), "...");
-
         if (!token) {
           console.error("❌ No token received from Clerk");
           return;
         }
 
-        console.log("📡 Making request to:", `${apiUrl}/me`);
-
+        // First sync the user
         const res = await fetch(`${apiUrl}/me`, {
           method: "GET",
           headers: {
@@ -37,18 +29,23 @@ export default function CompleteAuthPage() {
           },
         });
 
-        console.log("📥 Response status:", res.status);
-
         if (res.ok) {
-          const json = await res.json();
-          console.log("✅ Synced user:", json);
-          router.push("/dashboard");
+          const userData = await res.json();
+          console.log("✅ User data:", userData);
+
+          // Check onboarding status and redirect accordingly
+          if (userData.onboarding_completed) {
+            router.push("/dashboard");
+          } else {
+            router.push("/onboarding");
+          }
         } else {
-          const errorText = await res.text();
-          console.error("❌ Failed to sync user —", res.status, errorText);
+          console.error("❌ Failed to sync user");
+          router.push("/sign-in");
         }
       } catch (err) {
-        console.error("💥 Network or fetch error:", err);
+        console.error("💥 Network error:", err);
+        router.push("/sign-in");
       }
     };
 
@@ -56,8 +53,11 @@ export default function CompleteAuthPage() {
   }, [getToken, isLoaded, router]);
 
   return (
-    <div className="p-4 text-center">
-      <p className="text-gray-600">Finishing sign-in...</p>
-    </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Setting up your account...</p>
+        </div>
+      </div>
   );
 }

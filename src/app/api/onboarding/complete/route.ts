@@ -1,13 +1,24 @@
-// src/app/api/onboarding/complete/route.ts
-import { authenticatedFetch, createAuthenticatedResponse, createErrorResponse } from '@/lib/auth-helpers';
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
     try {
+        const { userId, getToken } = await auth();
+
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const token = await getToken();
         const body = await request.json();
 
-        // Send to your Rails backend
-        const response = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
+        // Send to Rails backend
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
             method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
                 first_name: body.firstName,
                 last_name: body.lastName,
@@ -22,7 +33,7 @@ export async function POST(request: Request) {
                 business_type: body.businessType,
                 company_size: body.employeeCount,
                 industry: body.industry,
-                onboarding_completed: true,
+                onboarding_completed: true, // Explicitly set this
             }),
         });
 
@@ -30,14 +41,17 @@ export async function POST(request: Request) {
             throw new Error('Failed to update user profile');
         }
 
-        return createAuthenticatedResponse({ success: true });
+        const userData = await response.json();
+
+        return NextResponse.json({
+            success: true,
+            user: userData.user
+        });
     } catch (error) {
         console.error('Onboarding error:', error);
-
-        if (error instanceof Error && error.message === 'Authentication required') {
-            return createErrorResponse('Unauthorized', 401);
-        }
-
-        return createErrorResponse('Failed to complete onboarding', 500);
+        return NextResponse.json(
+            { error: 'Failed to complete onboarding' },
+            { status: 500 }
+        );
     }
 }

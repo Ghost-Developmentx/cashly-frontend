@@ -2,8 +2,8 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
-import { useOnboarding } from '@/hooks/useOnboarding';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -14,28 +14,57 @@ export default function ProtectedRoute({
                                            children,
                                            requireOnboarding = true
                                        }: ProtectedRouteProps) {
-    const { isSignedIn, isLoaded } = useUser();
-    const { isLoading, isOnboarded, needsOnboarding } = useOnboarding();
+    const { isSignedIn, isLoaded: userLoaded } = useUser();
+    const { getToken } = useAuth();
     const router = useRouter();
+    const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+    const [isOnboarded, setIsOnboarded] = useState(false);
 
     useEffect(() => {
-        if (!isLoaded || isLoading) return;
+        const checkStatus = async () => {
+            if (!userLoaded) return;
 
-        // Not signed in? Redirect to sign-in
-        if (!isSignedIn) {
-            router.push('/sign-in');
-            return;
-        }
+            if (!isSignedIn) {
+                router.push('/sign-in');
+                return;
+            }
 
-        // Needs onboarding? Redirect to onboarding
-        if (requireOnboarding && needsOnboarding) {
-            router.push('/onboarding');
-            return;
-        }
-    }, [isLoaded, isLoading, isSignedIn, needsOnboarding, requireOnboarding, router]);
+            if (!requireOnboarding) {
+                setCheckingOnboarding(false);
+                return;
+            }
+
+            try {
+                const token = await getToken();
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    setIsOnboarded(userData.onboarding_completed);
+
+                    if (!userData.onboarding_completed) {
+                        router.push('/onboarding');
+                    }
+                } else {
+                    router.push('/sign-in');
+                }
+            } catch (error) {
+                console.error('Error checking onboarding:', error);
+                router.push('/sign-in');
+            } finally {
+                setCheckingOnboarding(false);
+            }
+        };
+
+        checkStatus();
+    }, [userLoaded, isSignedIn, requireOnboarding, router, getToken]);
 
     // Show loading state
-    if (!isLoaded || isLoading) {
+    if (!userLoaded || checkingOnboarding) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
@@ -46,11 +75,10 @@ export default function ProtectedRoute({
         );
     }
 
-    // Show nothing while redirecting
-    if (!isSignedIn || (requireOnboarding && needsOnboarding)) {
+    // Don't render anything while redirecting
+    if (!isSignedIn || (requireOnboarding && !isOnboarded)) {
         return null;
     }
 
-    // User is authenticated and onboarded (or onboarding not required)
     return <>{children}</>;
 }
