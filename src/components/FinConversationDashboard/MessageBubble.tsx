@@ -1,4 +1,5 @@
 import React from 'react';
+import { renderSafeMarkdown } from '@/utils/renderSafeMarkdown';
 
 type Props = {
   message: {
@@ -6,19 +7,6 @@ type Props = {
     role: 'user' | 'assistant';
     content: string;
   };
-};
-
-// Simple markdown renderer for basic formatting
-const renderMarkdown = (text: string): string => {
-  return text
-      // Bold text: **text** -> <strong>text</strong>
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Italic text: *text* -> <em>text</em>
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      // Code: `text` -> <code>text</code>
-      .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>')
-      // Line breaks
-      .replace(/\n/g, '<br />');
 };
 
 export default function MessageBubble({ message }: Props) {
@@ -54,18 +42,14 @@ export default function MessageBubble({ message }: Props) {
             }
           `}>
               {/* Render markdown content */}
-              <div
-                  className="text-sm leading-relaxed break-words"
-                  dangerouslySetInnerHTML={{
-                    __html: renderMarkdown(message.content)
-                  }}
-              />
+                <div
+                    className="text-sm leading-relaxed break-words prose max-w-none"
+                    dangerouslySetInnerHTML={{
+                        __html: renderSafeMarkdown(message.content)
+                    }}
+                />
             </div>
-
-            {/* Timestamp (optional - you can add this if you have timestamp data) */}
             <div className={`text-xs text-gray-400 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
-              {/* You can add timestamp here if available */}
-              {/* {formatTime(message.created_at)} */}
             </div>
           </div>
         </div>

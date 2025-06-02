@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/sidebar/index";
 import FinConversationDashboard from "@/components/FinConversationDashboard";
 import { Conversation } from "@/types/conversation";
 
